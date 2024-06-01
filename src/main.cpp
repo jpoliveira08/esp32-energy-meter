@@ -1,18 +1,27 @@
 #include <Arduino.h>
-
-// put function declarations here:
-int myFunction(int, int);
+#include <EnergyMeter.h>
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  Serial.begin(115200);
+
+  setupMeasurement();
+
+  struct ElectricalMeasurements eletricMeasurements;
+
+  eletricMeasurements = makeMeasurement();
+
+  Serial.print("Vrms: ");
+  Serial.print(eletricMeasurements.vrms, 5);
+  Serial.print(" Irms: ");
+  Serial.print(eletricMeasurements.irms, 5);
+  Serial.print(" Real Power: ");
+  Serial.print(eletricMeasurements.realPower, 5);
+  Serial.print(" Apparent Power: ");
+  Serial.print(eletricMeasurements.apparentPower, 5);
+  Serial.print(" Power factor: ");
+  Serial.println(eletricMeasurements.powerFactor, 5);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  
 }

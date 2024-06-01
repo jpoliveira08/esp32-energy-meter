@@ -17,7 +17,7 @@ Para medir os demais valores de corrente, será utilizado associação das lâmp
 
 Código:
 
-Transformar o código em uma biblioteca.
+Transformar o código em uma biblioteca. - Don't work
 
 Adicionar o deep sleep
 
