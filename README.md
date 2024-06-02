@@ -17,9 +17,9 @@ Para medir os demais valores de corrente, será utilizado associação das lâmp
 
 Código:
 
-Transformar o código em uma biblioteca. - Don't work
+Transformar o código em uma biblioteca. - Feito parcialmente, da pra melhorar, mas funciona
 
-Adicionar o deep sleep
+Adicionar o deep sleep - Não faz sentido, visto que o código não está rodando 
 
 Adicionar a biblioteca para fazer a sincronização de tempo, para enviar os dados com timestamp
 
