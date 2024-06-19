@@ -26,7 +26,7 @@
 #define REAL_POWER_COEFFICIENT_A 1
 #define REAL_POWER_COEFFICIENT_B 0
 
-#define RMS_TOPIC "rms"  
+#define RMS_TOPIC "measurements/rms"  
 #define INSTANTANEOUS_TOPIC "instantaneous"
 
 volatile int sampleCount = NSAMPLES;
@@ -71,6 +71,13 @@ bool isWifiConnected = false;
 
 unsigned long epochTime;
 
+int countRmsMeasurements = 0;
+double sumVoltageToSend = 0.0;
+double sumCurrentToSend = 0.0;
+double sumRealPowerToSend = 0.0;
+double sumApparentPowerToSend = 0.0;
+double sumPowerFactorToSend = 0.0;
+
 void connectWifi();
 void checkConnectionsTask(void* param);
 void setupNTP();
@@ -98,24 +105,42 @@ void setup() {
 }
 
 void loop() {
-  epochTime = ntpClient.getEpochTime();
+  measurements = makeMeasurement();
+
+  if (countRmsMeasurements <= 180) {
+    sumVoltageToSend += measurements.vrms;
+    sumCurrentToSend += measurements.irms;
+    sumRealPowerToSend += measurements.realPower;
+    sumApparentPowerToSend += measurements.apparentPower;
+    sumPowerFactorToSend += measurements.powerFactor;
+
+    countRmsMeasurements++;
+    
+    return;
+  }
 
   JsonDocument doc;
   
-  measurements = makeMeasurement();
   doc["voltage"] = measurements.vrms;
   doc["current"] = measurements.irms;
   doc["apparentPower"] = measurements.apparentPower;
   doc["realPower"] = measurements.realPower;
   doc["powerFactor"] = measurements.powerFactor;
-  doc["readAt"] = epochTime;
+  doc["readAt"] = ntpClient.getEpochTime();
 
   String json;
   serializeJson(doc, json);
   MQTT.publish(RMS_TOPIC, (char*) json.c_str());
 
   /* keep-alive MQTT */    
-  MQTT.loop();  
+  MQTT.loop();
+
+  sumVoltageToSend = 0;
+  sumCurrentToSend = 0;
+  sumRealPowerToSend = 0;
+  sumApparentPowerToSend = 0;
+  sumPowerFactorToSend = 0;
+  countRmsMeasurements = 0;
 }
 
 void connectWifi() {
