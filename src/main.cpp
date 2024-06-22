@@ -8,7 +8,7 @@
 #define CLOCKRATE 80000000 /* Hz */
 #define TIMERDIVIDER 4
 
-#define NSAMPLES_SHIFT (1)
+#define NSAMPLES_SHIFT (0)
 #define OVER_SAMPLE_RATIO (16)
 #define CYCLES (20)
 #define NSAMPLES (OVER_SAMPLE_RATIO * CYCLES) + NSAMPLES_SHIFT // 321
@@ -38,11 +38,11 @@ hw_timer_t *My_timer = NULL;
 WiFiUDP udp;
 NTPClient ntpClient(udp);
 
-const char* WIFI_SSID = "JP"; 
-const char* WIFI_PASSWORD = "luna@067";
+const char* WIFI_SSID = "moto_g8"; 
+const char* WIFI_PASSWORD = "bruder067";
 WiFiClient wifiClient;
 
-const char* BROKER_MQTT = "192.168.0.108"; 
+const char* BROKER_MQTT = "192.168.202.134"; 
 int BROKER_PORT = 1883;
 
 PubSubClient MQTT(wifiClient);
@@ -120,12 +120,17 @@ void loop() {
   }
 
   JsonDocument doc;
-  
-  doc["voltage"] = measurements.vrms;
-  doc["current"] = measurements.irms;
-  doc["apparentPower"] = measurements.apparentPower;
-  doc["realPower"] = measurements.realPower;
-  doc["powerFactor"] = measurements.powerFactor;
+
+  float VrmsConverted = (277.0 * measurements.vrms) + 1.49;
+  float IrmsConverted = (30.6 * measurements.irms) - 0.0194;
+  float apparentPowerConverted = VrmsConverted * IrmsConverted;
+  float realPowerConverted = (8633.0 * measurements.realPower) - 4.47;
+
+  doc["voltage"] = VrmsConverted;
+  doc["current"] = IrmsConverted;
+  doc["apparentPower"] = apparentPowerConverted;
+  doc["realPower"] = realPowerConverted;
+  doc["powerFactor"] = realPowerConverted / apparentPowerConverted;
   doc["readAt"] = ntpClient.getEpochTime();
 
   String json;
@@ -293,27 +298,27 @@ void readAnalogSamples() {
 }
 
 struct ElectricalMeasurements measureRms(int* voltageSamples, int* currentSamples, int nsamples) {
-  int voltageSamplesFiltered[NSAMPLES - NSAMPLES_SHIFT];
-  int currentSamplesFiltered[NSAMPLES - NSAMPLES_SHIFT];
+  //int voltageSamplesFiltered[NSAMPLES - NSAMPLES_SHIFT];
+  //int currentSamplesFiltered[NSAMPLES - NSAMPLES_SHIFT];
 
-  for (int i = 0; i < NSAMPLES; i++) { // posição 0 até 320 
-    if (i == 0) {
-      voltageSamplesFiltered[i] = voltageSamples[i];
-    } else if ( i == (NSAMPLES - NSAMPLES_SHIFT)) {
-      currentSamplesFiltered[i] = currentSamples[i];
-    } else {
-      voltageSamplesFiltered[i] = voltageSamples[i];
-      currentSamplesFiltered[i] = currentSamples[i - NSAMPLES_SHIFT];
-    }
-  }
+  //for (int i = 0; i < NSAMPLES; i++) { // posição 0 até 320 
+  //  if (i == 0) {
+  //    voltageSamplesFiltered[i] = voltageSamples[i];
+  //  } else if ( i == (NSAMPLES - NSAMPLES_SHIFT)) {
+  //    currentSamplesFiltered[i] = currentSamples[i];
+  //  } else {
+  //    voltageSamplesFiltered[i] = voltageSamples[i];
+  //    currentSamplesFiltered[i] = currentSamples[i - NSAMPLES_SHIFT];
+  //  }
+  //}
 
   struct ElectricalMeasurements eletricMeasurements;
   int32_t sumVoltageSamples = 0;
   int32_t sumCurrentSamples = 0;
 
   for (int i = 0; i < nsamples; i++) {
-    sumVoltageSamples += voltageSamplesFiltered[i];
-    sumCurrentSamples += currentSamplesFiltered[i];
+    sumVoltageSamples += voltageSamples[i];
+    sumCurrentSamples += currentSamples[i];
   }
 
   int voltageMean = (int)(sumVoltageSamples / (int32_t)(nsamples));
@@ -323,8 +328,8 @@ struct ElectricalMeasurements measureRms(int* voltageSamples, int* currentSample
   int32_t sumCurrent = 0;
   int32_t sumInstantaneousPower = 0;
   for (int i = 0; i < nsamples; i++) {
-    int32_t y_voltage = (voltageSamplesFiltered[i] - voltageMean);
-    int32_t y_current = (currentSamplesFiltered[i] - currentMean);
+    int32_t y_voltage = (voltageSamples[i] - voltageMean);
+    int32_t y_current = (currentSamples[i] - currentMean);
     int32_t y_instantaneousPower = y_voltage * y_current;
   
     sumVoltage += y_voltage * y_voltage;
@@ -340,9 +345,9 @@ struct ElectricalMeasurements measureRms(int* voltageSamples, int* currentSample
   float Irms = sqrt(ym_current) * 3.3 / 4096.0;
   float realPower = ym_realPower * 3.3 / 4096.0;
 
-  Vrms = (VOLTAGE_COEFFICIENT_A * Vrms) + VOLTAGE_COEFFICIENT_B;
-  Irms = (CURRENT_COEFFICIENT_A * Irms) + CURRENT_COEFFICIENT_B;
-  realPower = (REAL_POWER_COEFFICIENT_A * realPower) + REAL_POWER_COEFFICIENT_B;
+  // Vrms = (VOLTAGE_COEFFICIENT_A * Vrms) + VOLTAGE_COEFFICIENT_B;
+  // Irms = (CURRENT_COEFFICIENT_A * Irms) + CURRENT_COEFFICIENT_B;
+  // realPower = (REAL_POWER_COEFFICIENT_A * realPower) + REAL_POWER_COEFFICIENT_B;
 
   float apparentPower = Vrms * Irms;
   eletricMeasurements.vrms = Vrms;
