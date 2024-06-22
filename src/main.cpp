@@ -38,11 +38,11 @@ hw_timer_t *My_timer = NULL;
 WiFiUDP udp;
 NTPClient ntpClient(udp);
 
-const char* WIFI_SSID = "moto_g8"; 
-const char* WIFI_PASSWORD = "bruder067";
+const char* WIFI_SSID = "JP"; 
+const char* WIFI_PASSWORD = "luna@067";
 WiFiClient wifiClient;
 
-const char* BROKER_MQTT = "192.168.202.134"; 
+const char* BROKER_MQTT = "192.168.0.108"; 
 int BROKER_PORT = 1883;
 
 PubSubClient MQTT(wifiClient);
@@ -75,8 +75,6 @@ int countRmsMeasurements = 0;
 double sumVoltageToSend = 0.0;
 double sumCurrentToSend = 0.0;
 double sumRealPowerToSend = 0.0;
-double sumApparentPowerToSend = 0.0;
-double sumPowerFactorToSend = 0.0;
 
 void connectWifi();
 void checkConnectionsTask(void* param);
@@ -111,8 +109,6 @@ void loop() {
     sumVoltageToSend += measurements.vrms;
     sumCurrentToSend += measurements.irms;
     sumRealPowerToSend += measurements.realPower;
-    sumApparentPowerToSend += measurements.apparentPower;
-    sumPowerFactorToSend += measurements.powerFactor;
 
     countRmsMeasurements++;
     
@@ -124,7 +120,7 @@ void loop() {
   float VrmsConverted = (277.0 * measurements.vrms) + 1.49;
   float IrmsConverted = (30.6 * measurements.irms) - 0.0194;
   float apparentPowerConverted = VrmsConverted * IrmsConverted;
-  float realPowerConverted = (8633.0 * measurements.realPower) - 4.47;
+  float realPowerConverted = (7.26 * measurements.realPower) - 0.0887;
 
   doc["voltage"] = VrmsConverted;
   doc["current"] = IrmsConverted;
@@ -143,8 +139,6 @@ void loop() {
   sumVoltageToSend = 0;
   sumCurrentToSend = 0;
   sumRealPowerToSend = 0;
-  sumApparentPowerToSend = 0;
-  sumPowerFactorToSend = 0;
   countRmsMeasurements = 0;
 }
 
@@ -345,16 +339,9 @@ struct ElectricalMeasurements measureRms(int* voltageSamples, int* currentSample
   float Irms = sqrt(ym_current) * 3.3 / 4096.0;
   float realPower = ym_realPower * 3.3 / 4096.0;
 
-  // Vrms = (VOLTAGE_COEFFICIENT_A * Vrms) + VOLTAGE_COEFFICIENT_B;
-  // Irms = (CURRENT_COEFFICIENT_A * Irms) + CURRENT_COEFFICIENT_B;
-  // realPower = (REAL_POWER_COEFFICIENT_A * realPower) + REAL_POWER_COEFFICIENT_B;
-
-  float apparentPower = Vrms * Irms;
   eletricMeasurements.vrms = Vrms;
   eletricMeasurements.irms = Irms;
   eletricMeasurements.realPower = realPower;
-  eletricMeasurements.apparentPower = apparentPower;
-  eletricMeasurements.powerFactor = realPower / apparentPower;
 
   return eletricMeasurements;
 }
