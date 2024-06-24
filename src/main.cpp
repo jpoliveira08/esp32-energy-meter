@@ -86,7 +86,6 @@ void setup() {
   connectWifi();
   setupNTP();
   setupMQTT();
-  mqttReconnect();
 
   // Creating a task in the first core, to check and connect to Wifi when is needed
   xTaskCreatePinnedToCore(
@@ -117,16 +116,17 @@ void loop() {
 
   JsonDocument doc;
 
-  float VrmsConverted = (277.0 * measurements.vrms) + 1.49;
-  float IrmsConverted = (30.6 * measurements.irms) - 0.0194;
+  float VrmsConverted = (277.0 * (sumVoltageToSend / 180.0)) + 1.49;
+  float IrmsConverted = (30.6 * (sumCurrentToSend / 180.0)) - 0.0194;
   float apparentPowerConverted = VrmsConverted * IrmsConverted;
-  float realPowerConverted = (7.26 * measurements.realPower) - 0.0887;
+  float realPowerConverted = (7.26 * (sumRealPowerToSend / 180.0)) - 0.0887;
+  float powerFactorConverted = realPowerConverted / apparentPowerConverted;
 
   doc["voltage"] = VrmsConverted;
   doc["current"] = IrmsConverted;
   doc["apparentPower"] = apparentPowerConverted;
   doc["realPower"] = realPowerConverted;
-  doc["powerFactor"] = realPowerConverted / apparentPowerConverted;
+  doc["powerFactor"] = (powerFactorConverted) <= 1.0 ? powerFactorConverted : (2 - powerFactorConverted);
   doc["readAt"] = ntpClient.getEpochTime();
 
   String json;
